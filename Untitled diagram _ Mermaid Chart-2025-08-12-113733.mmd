@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant S as Streamlit App
+    participant E as Embeddings
+    participant L as LLM
+    participant Ldr as PDF Loader
+    participant T as Text Splitter
+    participant V as Vector Store
+
+    U->>S: Open app / select Provider
+    alt Gemini
+        U->>S: Enter Google API Key
+        S->>E: Init Google Embeddings
+        S->>L: Init Gemini Flash
+    else Ollama
+        S->>E: Init Ollama Embeddings
+        S->>L: Init ChatOllama (deepseek-r1)
+    end
+
+    U->>S: Upload PDF
+    S->>S: Save file
+    S->>Ldr: Load documents
+    Ldr-->>S: Documents
+    S->>T: Split documents
+    T-->>S: Chunks
+    S->>V: Index chunks
+
+    U->>S: Ask question
+    S->>V: Similarity search
+    V-->>S: Relevant chunks
+    S->>L: Prompt(user_query, context)
+    alt Success
+        L-->>S: Answer
+        S-->>U: Display answer
+    else 429 quota
+        S->>L: Fallback to Flash
+        L-->>S: Answer
+        S-->>U: Display answer
+    else Error
+        S-->>U: Show error
+    end
